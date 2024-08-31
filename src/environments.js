@@ -21,4 +21,10 @@ export const environments = [
 		path: 'https://storage.googleapis.com/donmccurdy-static/footprint_court_2k.exr',
 		format: '.exr',
 	},
+	{
+		id: 'japan-forest',
+		name: 'Japan Forest',
+		path: 'http://localhost:3000/ninomaru_teien_8k.exr',
+		format: '.exr',
+	},
 ];

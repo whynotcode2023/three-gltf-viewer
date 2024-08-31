@@ -8,13 +8,24 @@ import {
 	DirectionalLight,
 	GridHelper,
 	HemisphereLight,
+	ImageUtils,
+	TextureLoader,
+	SphereGeometry,
+	UVMapping,
+	DoubleSide,
+	Mesh,
+	MeshBasicMaterial,
 	LoaderUtils,
+	LinearSRGBColorSpace,
+	SRGBColorSpace,
 	LoadingManager,
 	PMREMGenerator,
+	MathUtils,
 	PerspectiveCamera,
 	PointsMaterial,
 	REVISION,
 	Scene,
+	Group,
 	SkeletonHelper,
 	Vector3,
 	WebGLRenderer,
@@ -65,9 +76,9 @@ export class Viewer {
 		this.state = {
 			environment:
 				options.preset === Preset.ASSET_GENERATOR
-					? environments.find((e) => e.id === 'footprint-court').name
+					? environments.find((e) => e.id === 'japan-forest').name
 					: environments[1].name,
-			background: false,
+			background: true,
 			playbackSpeed: 1.0,
 			actionStates: {},
 			camera: DEFAULT_CAMERA,
@@ -98,13 +109,26 @@ export class Viewer {
 		this.backgroundColor = new Color(this.state.bgColor);
 
 		this.scene = new Scene();
-		this.scene.background = this.backgroundColor;
+		this.scene.background = null;
 
 		const fov = options.preset === Preset.ASSET_GENERATOR ? (0.8 * 180) / Math.PI : 60;
 		const aspect = el.clientWidth / el.clientHeight;
 		this.defaultCamera = new PerspectiveCamera(fov, aspect, 0.01, 1000);
 		this.activeCamera = this.defaultCamera;
 		this.scene.add(this.defaultCamera);
+
+		var texture = new TextureLoader().load('http://localhost:3000/ninomaru_teien_8k.jpg', function(texture) {
+		    var mesh = new Mesh(
+		        new SphereGeometry(1000, 60, 40),
+		        new MeshBasicMaterial({ map: texture, side: DoubleSide })
+		    );
+		    mesh.scale.x = -1; // Invert the sphere to render it from the inside
+		    mesh.rotation.y = MathUtils.degToRad(-90);
+		    console.log('Adding environment sphere geometry');
+		    this.scene.add(mesh);
+		}.bind(this)); // Bind 'this' to access the scene context
+
+		texture.colorSpace = SRGBColorSpace;
 
 		this.renderer = window.renderer = new WebGLRenderer({ antialias: true });
 		this.renderer.setClearColor(0xcccccc);
@@ -301,7 +325,7 @@ export class Viewer {
 
 		this.updateLights();
 		this.updateGUI();
-		this.updateEnvironment();
+		//this.updateEnvironment();
 		this.updateDisplay();
 
 		window.VIEWER.scene = this.content;
@@ -365,8 +389,8 @@ export class Viewer {
 			this.removeLights();
 		}
 
-		this.renderer.toneMapping = Number(state.toneMapping);
-		this.renderer.toneMappingExposure = Math.pow(2, state.exposure);
+        this.renderer.toneMapping = Number(state.toneMapping);
+        this.renderer.toneMappingExposure = Math.pow(2, state.exposure);
 
 		if (lights.length === 2) {
 			lights[0].intensity = state.ambientIntensity;
@@ -412,6 +436,9 @@ export class Viewer {
 		this.getCubeMapTexture(environment).then(({ envMap }) => {
 			this.scene.environment = envMap;
 			this.scene.background = this.state.background ? envMap : this.backgroundColor;
+            const pivot = new Group();
+            pivot.add(this.scene);
+            pivot.rotation.y = MathUtils.degToRad(-90);
 		});
 	}
 
@@ -433,6 +460,7 @@ export class Viewer {
 				path,
 				(texture) => {
 					const envMap = this.pmremGenerator.fromEquirectangular(texture).texture;
+                    envMap.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
 					this.pmremGenerator.dispose();
 
 					resolve({ envMap });
@@ -486,7 +514,7 @@ export class Viewer {
 	}
 
 	updateBackground() {
-		this.backgroundColor.set(this.state.bgColor);
+        this.backgroundColor.set(this.state.bgColor);
 	}
 
 	/**

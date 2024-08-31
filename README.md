@@ -22,3 +22,14 @@ npm run dev
 ## Known Issues
 
 -   [ ] Limited drag-and-drop support in Safari.
+
+
+## Changes
+
+Support for adding a high quality 360 background image. The current
+environments convert equirectangular images to a lower res cubemap for use with
+IBL. This change uses the EXR conversion to cubemap for the IBL but adds a
+separate mesh for rendering the high quality equirectangular image.
+
+Download EXR from:
+https://polyhaven.com/a/ninomaru_teien
